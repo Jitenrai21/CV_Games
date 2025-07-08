@@ -138,7 +138,7 @@ while running:
         display_text(current_fact, 20, 500)
         if pygame.time.get_ticks() - last_display_time > display_duration:
             fact_displayed = False
-
+    
     # Update the screen
     pygame.display.flip()
 

@@ -4,12 +4,13 @@ import mediapipe as mp
 import numpy as np
 import random
 import time
+from rover_movement_animation import Particle
 
 # Initialize pygame
 pygame.init()
 
 # Screen dimensions and setup
-screen_width, screen_height = 800, 600
+screen_width, screen_height = 1080, 640
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Mars Rover Exploration")
 
@@ -152,13 +153,13 @@ def detect_hand_gesture(hand_landmarks, prev_gestures, smoothing_window=5, mirro
     
     # Define angle ranges for directions (corrected)
     if -45 <= angle < 45:
-        gesture = "right"
-    elif 45 <= angle < 135:
-        gesture = "down"
-    elif 135 <= angle or angle < -135:
         gesture = "left"
-    elif -135 <= angle < -45:
+    elif 45 <= angle < 135:
         gesture = "up"
+    elif 135 <= angle or angle < -135:
+        gesture = "right"
+    elif -135 <= angle < -45:
+        gesture = "down"
     else:
         gesture = None
     
@@ -187,9 +188,16 @@ if not cap.isOpened():
     pygame.quit()
     exit()
 
+# Rover Animation Variable
+is_moving = False
+particles = []
+hover_offset = 0
+
 # Game loop
 running = True
 clock = pygame.time.Clock()
+last_gesture_time = 0
+gesture_cooldown = 0.1  # seconds
 
 while running:
     # Handle events
@@ -200,7 +208,12 @@ while running:
     # Draw game visuals
     screen.fill(WHITE)
     screen.blit(background_image, (0, 0))
-    screen.blit(rover_image, (rover_x, rover_y))
+    if not is_moving:
+        time_ms = pygame.time.get_ticks()
+        hover_offset = 8 * np.sin(time_ms / 500)  # 6 pixels vertical oscillation
+    else:
+        hover_offset = 0  # No hovering while moving
+    screen.blit(rover_image, (rover_x, rover_y + hover_offset))
 
     # Process webcam frame
     ret, frame = cap.read()
@@ -234,24 +247,39 @@ while running:
                     current_fact = "Keep exploring for more beneficial results!"
                     state = "analyzing"
                     analyzing_start_time = pygame.time.get_ticks()
-            elif gesture in ["left", "right", "up", "down"]:
-                if gesture == "left":
-                    rover_y += rover_speed
-                elif gesture == "right":
-                    rover_y -= rover_speed
-                elif gesture == "up":
-                    rover_x -= rover_speed
-                elif gesture == "down":
-                    rover_x += rover_speed
-                
+            
+            if gesture in ["left", "right", "up", "down"]:
+                now = time.time()
+                is_moving = True
+                if now - last_gesture_time > gesture_cooldown:
+                    if gesture == "right":
+                        rover_y += rover_speed
+                    elif gesture == "left":
+                        rover_y -= rover_speed
+                    elif gesture == "down":
+                        rover_x -= rover_speed
+                    elif gesture == "up":
+                        rover_x += rover_speed
+                    last_gesture_time = now
                 # Boundary check
                 rover_x = max(0, min(rover_x, screen_width - rover_image.get_width()))
                 rover_y = max(0, min(rover_y, screen_height - rover_image.get_height()))
+            else:
+                is_moving = False
+            if is_moving:
+                for _ in range(5):  # Spawn 3 particles per frame
+                    particles.append(Particle(rover_x + 40, rover_y + 90))  # behind the rover
+
+            for p in particles[:]:
+                p.update()
+                p.draw(screen)
+                if p.life <= 0:
+                    particles.remove(p)
 
     # Display webcam feed
-    # frame_surface = pygame.surfarray.make_surface(frame_rgb)
-    # frame_surface = pygame.transform.scale(frame_surface, (200, 150))
-    # screen.blit(frame_surface, (0, 0))
+    frame_surface = pygame.surfarray.make_surface(frame_rgb)
+    frame_surface = pygame.transform.scale(frame_surface, (200, 150))
+    screen.blit(frame_surface, (0, 0))
 
     # Display text
     if state == "analyzing":

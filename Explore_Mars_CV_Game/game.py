@@ -20,25 +20,25 @@ TEXT_COLOR = (255, 255, 255)  # White for text
 background_image = pygame.image.load('explore_mars_background.png')  # Make sure to put your image path here
 background_image = pygame.transform.scale(background_image, (screen_width, screen_height))  # Resize to fit the screen
 
-rover_image = pygame.image.load('rover.png')  # Rover PNG image path
+rover_image = pygame.image.load('rover1.png')  # Rover PNG image path
 rover_image = pygame.transform.scale(rover_image, (100, 100))  # Resize rover to appropriate size
 
 # Initial rover position
 rover_x, rover_y = screen_width // 2, screen_height // 2
 rover_speed = 5
 
-# Coordinates for bounding boxes (stones and pitholes) from your previous input
+# Coordinates for bounding boxes (scaled to screen size)
 stone_coords = [
-    (54, 180, 112, 202),
-    (115, 239, 173, 266),
-    (193, 344, 241, 368),
-    (38, 387, 83, 410),
-    (111, 507, 177, 538)
+    (int(54 * screen_width / 800), int(180 * screen_height / 600), int(112 * screen_width / 800), int(202 * screen_height / 600)),
+    (int(115 * screen_width / 800), int(239 * screen_height / 600), int(173 * screen_width / 800), int(266 * screen_height / 600)),
+    (int(193 * screen_width / 800), int(344 * screen_height / 600), int(241 * screen_width / 800), int(368 * screen_height / 600)),
+    (int(38 * screen_width / 800), int(387 * screen_height / 600), int(83 * screen_width / 800), int(410 * screen_height / 600)),
+    (int(111 * screen_width / 800), int(507 * screen_height / 600), int(177 * screen_width / 800), int(538 * screen_height / 600))
 ]
 
 pithole_coords = [
-    (468, 279, 717, 333),
-    (437, 398, 720, 463)
+    (int(468 * screen_width / 800), int(279 * screen_height / 600), int(717 * screen_width / 800), int(333 * screen_height / 600)),
+    (int(437 * screen_width / 800), int(398 * screen_height / 600), int(720 * screen_width / 800), int(463 * screen_height / 600))
 ]
 
 # Facts about the stones and pitholes
@@ -59,12 +59,16 @@ pithole_facts = [
 ]
 
 # Function to check if the rover is inside any bounding box
-def check_for_collision(rover_rect, object_coords):
-    for (start_x, start_y, end_x, end_y) in object_coords:
+def check_for_collision(rover_rect, stone_coords, pithole_coords):
+    for (start_x, start_y, end_x, end_y) in stone_coords:
         object_rect = pygame.Rect(start_x, start_y, end_x - start_x, end_y - start_y)
         if rover_rect.colliderect(object_rect):
-            return True
-    return False
+            return "stone"
+    for (start_x, start_y, end_x, end_y) in pithole_coords:
+        object_rect = pygame.Rect(start_x, start_y, end_x - start_x, end_y - start_y)
+        if rover_rect.colliderect(object_rect):
+            return "pithole"
+    return None
 
 # Function to display text on the screen
 def display_text(text, x, y, font_size=30):
@@ -72,11 +76,13 @@ def display_text(text, x, y, font_size=30):
     text_surface = font.render(text, True, TEXT_COLOR)
     screen.blit(text_surface, (x, y))
 
-# Variables to handle display duration and randomization
-last_display_time = 0
-display_duration = 3000  # Time to display facts (in milliseconds)
+# Variables for display timing and state
+state = "idle"  # idle, analyzing, showing_fact
+analyzing_start_time = 0
+fact_display_time = 0
 current_fact = ""
-fact_displayed = False
+fact_display_duration = 3000  # 5 seconds
+analyzing_duration = 2000  # 3 seconds
 
 # Game loop
 running = True
@@ -115,29 +121,33 @@ while running:
     # Handle spacebar press to trigger analysis
     if keys[pygame.K_SPACE]:
         rover_rect = pygame.Rect(rover_x, rover_y, rover_image.get_width(), rover_image.get_height())
-
-        # Check for collision with stones or pitholes and display the relevant facts
-        if check_for_collision(rover_rect, stone_coords):
-            index = stone_coords.index(next(coord for coord in stone_coords if pygame.Rect(coord).colliderect(rover_rect)))
+        collision_type = check_for_collision(rover_rect, stone_coords, pithole_coords)
+        if collision_type == "stone":
             current_fact = random.choice(stone_facts)
-            fact_displayed = True
-            last_display_time = pygame.time.get_ticks()
-        elif check_for_collision(rover_rect, pithole_coords):
-            index = pithole_coords.index(next(coord for coord in pithole_coords if pygame.Rect(coord).colliderect(rover_rect)))
+            state = "analyzing"
+            analyzing_start_time = pygame.time.get_ticks()
+        elif collision_type == "pithole":
             current_fact = random.choice(pithole_facts)
-            fact_displayed = True
-            last_display_time = pygame.time.get_ticks()
+            state = "analyzing"
+            analyzing_start_time = pygame.time.get_ticks()
         else:
             current_fact = "Keep exploring for more beneficial results!"
-            fact_displayed = True
-            last_display_time = pygame.time.get_ticks()
+            state = "analyzing"
+            analyzing_start_time = pygame.time.get_ticks()
 
-    # Display the fact if it's within the display time limit
-    if fact_displayed:
-        elapsed_time = pygame.time.get_ticks() - display_duration
-        display_text(current_fact, 20, 500)
-        if pygame.time.get_ticks() - last_display_time > display_duration:
-            fact_displayed = False
+    # Display text
+    if state == "analyzing":
+        elapsed_time = pygame.time.get_ticks() - analyzing_start_time
+        if elapsed_time < analyzing_duration:
+            display_text("Analyzing...", 20, 500)
+        else:
+            state = "showing_fact"
+            fact_display_time = pygame.time.get_ticks()
+    elif state == "showing_fact":
+        if pygame.time.get_ticks() - fact_display_time <= fact_display_duration:
+            display_text(current_fact, 20, 500)
+        else:
+            state = "idle"
     
     # Update the screen
     pygame.display.flip()

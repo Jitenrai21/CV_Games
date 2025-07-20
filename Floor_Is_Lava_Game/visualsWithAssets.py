@@ -30,12 +30,23 @@ lava_bg = pygame.transform.scale(lava_bg, (GRID_WIDTH, GRID_HEIGHT))
 
 # Define grid cell states
 # Each cell has: {"state": "safe"/"cracked"/"fallen", "crack_time": timestamp}
-grid = [[{"state": "safe", "crack_time": None} for _ in range(COLS)] for _ in range(ROWS)]
+grid = [[{"state": "cracked",
+    "crack_time": time,
+    "anim_frame": 0,
+    "last_frame_time": time,
+    "state": "safe", "crack_time": None} for _ in range(COLS)] for _ in range(ROWS)]
 
 # Timing control
 CRACK_INTERVAL = 5  # seconds before cracked tiles fall
 CYCLE_INTERVAL = 8  # seconds for a full refresh
 last_cycle_time = time.time()
+
+gen_crack_frames = [
+    pygame.transform.scale(pygame.image.load(f"break_frames/break_{i}.png"), (CELL_SIZE, CELL_SIZE))
+    for i in range(1, 5)
+]
+
+crack_frames = [cracked_img] + gen_crack_frames
 
 def reset_grid():
     for row in range(ROWS):
@@ -50,8 +61,12 @@ def reset_grid():
         r = random.randint(0, ROWS - 1)
         c = random.randint(0, COLS - 1)
         if (r, c) not in selected:
-            grid[r][c]["state"] = "cracked"
-            grid[r][c]["crack_time"] = time.time()
+            grid[r][c] = {
+                "state": "cracked",
+                "crack_time": time.time(),
+                "anim_frame": 0,
+                "last_frame_time": time.time()
+            }
             selected.add((r, c))
 
 def draw_grid():
@@ -67,7 +82,14 @@ def draw_grid():
             if state == "safe":
                 screen.blit(safe_img, (x, y))
             elif state == "cracked":
-                screen.blit(cracked_img, (x, y))
+                frame_idx = grid[row][col]["anim_frame"]
+                draw_x, draw_y = x, y
+                
+                if frame_idx != 0:
+                    draw_x += random.randint(-2, 2)
+                    draw_y += random.randint(-2, 2)
+
+                screen.blit(crack_frames[frame_idx], (draw_x, draw_y))
             elif state == "fallen":
                 # Show lava below (do nothing, lava already drawn)
                 continue
@@ -79,10 +101,18 @@ def update_cracked_tiles():
     current_time = time.time()
     for row in range(ROWS):
         for col in range(COLS):
-            if grid[row][col]["state"] == "cracked":
-                elapsed = current_time - grid[row][col]["crack_time"]
+            cell = grid[row][col]
+            if cell["state"] == "cracked":
+                elapsed = current_time - cell["crack_time"]
+
+                # Animate crack breaking
+                if current_time - cell["last_frame_time"] > 1.8 and cell["anim_frame"] < len(crack_frames) - 1:
+                    cell["anim_frame"] += 1
+                    cell["last_frame_time"] = current_time
+
+                # Transition to fallen (lava shown) after animation ends
                 if elapsed > CRACK_INTERVAL:
-                    grid[row][col]["state"] = "fallen"
+                    cell["state"] = "fallen"
 
 # Initial crack distribution
 reset_grid()

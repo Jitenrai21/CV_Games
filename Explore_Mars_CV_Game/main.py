@@ -170,6 +170,35 @@ def toggle_webcam():
         webcam_button.text = "Enable Webcam Feed"  # Change text to 'Enable Camera'
         print("Webcam disabled")
 
+# Load the speaker and mute icons
+speaker_icon = load_image("speaker.png", 50, 50)  # Unmuted speaker icon
+mute_icon = load_image("mute.png", 50, 50)  # Muted speaker icon
+
+def display_audio_control_icon(surface, x, y, muted):
+    """Display the audio control icon (speaker or mute) at the bottom left."""
+    if muted:
+        surface.blit(mute_icon, (x, y))  # Draw mute icon if muted
+    else:
+        surface.blit(speaker_icon, (x, y))  # Draw unmuted icon if not muted
+
+# Variable to track sound status (muted or not)
+muted = False
+
+# Function to toggle mute when clicked
+def toggle_mute(mouse_pos):
+    global muted
+    icon_x, icon_y = 20, screen_height - 70  # Bottom left position of the icon
+    icon_width, icon_height = speaker_icon.get_size()
+    
+    # Check if the click is within the icon boundaries
+    if icon_x <= mouse_pos[0] <= icon_x + icon_width and icon_y <= mouse_pos[1] <= icon_y + icon_height:
+        muted = not muted  # Toggle mute state
+
+        if muted:
+            pygame.mixer.music.set_volume(0)  # Mute the music
+        else:
+            pygame.mixer.music.set_volume(1)  # Unmute the music
+
 # Define some kid-friendly colors
 TUTORIAL_BG_COLOR = (0, 0, 0, 100)  # Semi-transparent black for background overlay
 COLOR_TEXT = (255, 176, 0)  # Gold for titles
@@ -177,7 +206,7 @@ COLOR_SUBTEXT = (0, 194, 203)
 COLOR_EMOJI = (241, 213, 128) 
 
 # Initialize font
-font_main = pygame.font.SysFont("Impact", 60)  # Larger and bold for main title
+font_main = pygame.font.SysFont("Impact", 70)  # Larger and bold for main title
 font_sub = pygame.font.SysFont("Impact", 40)  # Smaller for subtext
 font_instructions = pygame.font.SysFont("Impact", 35)  # Standard for instructions and gestures
 
@@ -207,7 +236,7 @@ tutorial_text = [
     ("Welcome to Mars Rover Exploration!", COLOR_TEXT, font_main),  # Main title
     ("Explore the Martian landscape and uncover educational facts.", COLOR_TEXT, font_sub),
     ("Use hand gestures to control the rover.", COLOR_EMOJI, font_instructions),
-    (gesture_fist_img, "Fist gesture to analyze in certain zones.", WHITE, font_instructions),
+    (gesture_fist_img, "Fist gesture: Analyze the zone", WHITE, font_instructions),
     # Split the complex gesture line into individual entries for clarity
     (gesture_left_img, "Left: Move left", WHITE, font_instructions),
     (gesture_right_img, "Right: Move right", WHITE, font_instructions),
@@ -224,6 +253,9 @@ def start_screen():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left mouse click
+                    toggle_mute(pygame.mouse.get_pos())
 
         # Fill screen with the background
         screen.fill(WHITE)
@@ -234,12 +266,41 @@ def start_screen():
         overlay.fill(TUTORIAL_BG_COLOR)  # Semi-transparent black overlay
         screen.blit(overlay, (0, 0))
 
-        # Display tutorial text with colors and different font sizes
-        y_position = screen_height // 10  # Start closer to the top for title
-        gesture_section_height = 0  # To calculate total height of the hand gesture part
+        # Set the initial position for the title (font_main)
+        y_position = screen_height // 10 - 40  # Start closer to the top for the title
 
-        # First calculate total height of gesture section
-        for item in tutorial_text[2:8]:  # Hand gesture part (now indices 2 to 7)
+        # Render the main title
+        line, color, font = tutorial_text[0]
+        text_surface = font.render(line, True, color)
+        text_width, text_height = text_surface.get_size()
+        x_position = (screen_width // 2) - (text_width // 2)
+        screen.blit(text_surface, (x_position, y_position))
+        y_position += text_height + 10 # Add space after the title
+
+        # Render the subtext (font_sub)
+        line, color, font = tutorial_text[1]
+        text_surface = font.render(line, True, color)
+        text_width, text_height = text_surface.get_size()
+        x_position = (screen_width // 2) - (text_width // 2)
+        screen.blit(text_surface, (x_position, y_position))
+        y_position += text_height  # Add space after subtext
+
+        # **Place image between the main title and subtext**
+        # Load and display the image
+        image = load_image("start_chimpu.png", 150, 150)  # Replace with actual image name and size
+        image_width, image_height = image.get_size()
+        image_x = (screen_width // 2) - (image_width // 2)  # Center image
+        screen.blit(image, (image_x, y_position))  # Place the image
+        y_position += image_height + 20  # Adjust y_position after the image
+
+        # **Display the audio control icon (speaker or mute)**
+        display_audio_control_icon(screen, 20, screen_height - 70, muted)
+
+        # **Continue with the rest of the tutorial text (gesture part)**
+        gesture_section_height = 0  # To calculate the height of the gesture section
+
+        # First, calculate the total height of the gesture section
+        for item in tutorial_text[2:]:  # Gesture part (now indices 2 to the end)
             if isinstance(item[0], pygame.Surface):  # Check if it's an image
                 text_surface = font_instructions.render(item[1], True, item[2])
                 gesture_section_height += text_surface.get_height() + 10  # Add spacing
@@ -247,8 +308,8 @@ def start_screen():
                 text_surface = item[2].render(item[0], True, item[1])
                 gesture_section_height += text_surface.get_height() + 10  # Add spacing
 
-        # Now place the tutorial text
-        for item in tutorial_text:
+        # Now place the tutorial text with the correct spacing
+        for item in tutorial_text[2:]:
             if isinstance(item[0], pygame.Surface):  # Check if it's an image (gesture lines)
                 image = item[0]
                 text = item[1]
@@ -272,14 +333,14 @@ def start_screen():
                     y_position = screen_height - 70  # Place near bottom
                 elif line in [item[0] for item in tutorial_text[2:8]]:  # Gesture instructions, center vertically
                     if line == tutorial_text[2][0]:  # First line of gesture tutorial
-                        y_position = (screen_height - gesture_section_height) // 2
+                        y_position = (screen_height - gesture_section_height) // 2 + 50
                     y_position += text_height + 10  # Line spacing between gesture tutorial lines
 
                 # Display the text
                 screen.blit(text_surface, (x_position, y_position))
                 if line != tutorial_text[-1][0]:  # Don't increment y_position after the last text
                     y_position += text_height + 10  # Move to next line for subsequent text
-        
+
         # Draw the logo
         draw_logo(screen, logo_img)
 
@@ -310,6 +371,7 @@ if not cap.isOpened():
 particles = []
 hover_offset = 0
 
+
 # Game loop
 def main_game():
     running = True
@@ -335,10 +397,22 @@ def main_game():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left mouse click
+                    toggle_mute(pygame.mouse.get_pos())
 
         # Draw game visuals
         screen.fill(WHITE)
         screen.blit(background_image, (0, 0))
+
+        # Handle sound/muted state (e.g., for background music, sound effects)
+        if not muted:
+            pygame.mixer.music.unpause()  # Resume music if unmuted
+        else:
+            pygame.mixer.music.pause()  # Pause music if muted
+
+        # Draw the audio control icon
+        display_audio_control_icon(screen, 20, screen_height - 70, muted)
 
         # Get mouse position and click state
         mouse_pos = pygame.mouse.get_pos()

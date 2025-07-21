@@ -34,16 +34,23 @@ logo_img_path = os.path.join(assets_dir, 'Logo.png')
 logo_img = pygame.image.load(logo_img_path).convert_alpha()
 logo_img = pygame.transform.smoothscale(logo_img, (120, 120))
 
-# Load sound effects
+# Load background music using pygame.mixer.music
 bgm_path = os.path.join(assets_dir, 'bgm.mp3')
-bgm = pygame.mixer.Sound(bgm_path)
+pygame.mixer.music.load(bgm_path)  # Load background music
+pygame.mixer.music.set_volume(1.0)  # Start with full volume
+pygame.mixer.music.play(-1)  # Play music in a loop (-1 for indefinite looping)
+
+# Load sound effects using pygame.mixer.Sound
 success_sound_path = os.path.join(assets_dir, 'success.mp3')
 success_sound = pygame.mixer.Sound(success_sound_path)
+success_sound.set_volume(1.0)  # Start with full volume
+
 miss_sound_path = os.path.join(assets_dir, 'miss.mp3')
 miss_sound = pygame.mixer.Sound(miss_sound_path)
+miss_sound.set_volume(1.0)  # Start with full volume
 
 # Play background music in a loop (once the game starts)
-bgm.play(loops=-1, maxtime=0, fade_ms=0)
+# bgm.play(loops=-1, maxtime=0, fade_ms=0)
 
 # Coordinates for bounding boxes (scaled to screen size)
 stone_coords = [

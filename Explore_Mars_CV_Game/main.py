@@ -371,6 +371,27 @@ if not cap.isOpened():
 particles = []
 hover_offset = 0
 
+# Track analyzed regions
+analyzed_stones = set()
+analyzed_pitholes = set()
+
+# Define total zones
+total_zones = len(stone_coords) + len(pithole_coords)
+
+# Function to check if the region has already been analyzed
+def has_analyzed_region(region_coords, region_type):
+    if region_type == "stone":
+        return region_coords in analyzed_stones
+    elif region_type == "pithole":
+        return region_coords in analyzed_pitholes
+    return False
+
+# Function to mark a region as analyzed
+def mark_region_as_analyzed(region_coords, region_type):
+    if region_type == "stone":
+        analyzed_stones.add(region_coords)
+    elif region_type == "pithole":
+        analyzed_pitholes.add(region_coords)
 
 # Game loop
 def main_game():
@@ -450,6 +471,17 @@ def main_game():
 
         screen.blit(exit_message_surface, (exit_message_x, exit_message_y))
 
+        # Calculate analyzed zones
+        analyzed_zones = len(analyzed_stones) + len(analyzed_pitholes)
+
+        # Display the analyzed zones progress (e.g., "Analyzed: 0/7 zones")
+        progress_text = f"Analyzed: {analyzed_zones}/{total_zones} zones"
+        progress_surface = font_sub.render(progress_text, True, WHITE)
+        progress_width, progress_height = progress_surface.get_size()
+        progress_x = 20
+        progress_y = 180  # Place it near the top
+        screen.blit(progress_surface, (progress_x, progress_y))
+
         # Process webcam frame
         ret, frame = cap.read()
         if not ret:
@@ -471,15 +503,42 @@ def main_game():
                     rover_rect = pygame.Rect(rover_x, rover_y, rover_image.get_width(), rover_image.get_height())
                     collision_type = check_for_collision(rover_rect, stone_coords, pithole_coords)
                     if collision_type == "stone":
-                        current_fact = random.choice(stone_facts)
-                        state = "analyzing"
-                        analyzing_start_time = pygame.time.get_ticks()
-                        sound_played = False  # Reset the flag to play sound after analysis
+                        for stone in stone_coords:
+                            if rover_rect.colliderect(pygame.Rect(stone)):
+                                # If stone has not been analyzed yet
+                                if not has_analyzed_region(stone, "stone"):
+                                    current_fact = random.choice(stone_facts)
+                                    state = "analyzing"
+                                    analyzing_start_time = pygame.time.get_ticks()
+                                    mark_region_as_analyzed(stone, "stone")  # Mark as analyzed
+                                    sound_played = False  # Reset flag to play success sound
+                                else:
+                                    # Already analyzed, no further analysis
+                                    current_fact = "You've already analyzed this stone!"
+                                    state = "showing_fact"
+                                    fact_display_time = pygame.time.get_ticks()
+                                    if not sound_played:
+                                        play_miss_sound()  # Play miss sound for already analyzed stone
+                                        sound_played = True
+                    
                     elif collision_type == "pithole":
-                        current_fact = random.choice(pithole_facts)
-                        state = "analyzing"
-                        analyzing_start_time = pygame.time.get_ticks()
-                        sound_played = False  # Reset the flag to play sound after analysis
+                        for pithole in pithole_coords:
+                            if rover_rect.colliderect(pygame.Rect(pithole)):
+                                # If pithole has not been analyzed yet
+                                if not has_analyzed_region(pithole, "pithole"):
+                                    current_fact = random.choice(pithole_facts)
+                                    state = "analyzing"
+                                    analyzing_start_time = pygame.time.get_ticks()
+                                    mark_region_as_analyzed(pithole, "pithole")  # Mark as analyzed
+                                    sound_played = False  # Reset flag to play success sound
+                                else:
+                                    # Already analyzed, no further analysis
+                                    current_fact = "You've already analyzed this pithole!"
+                                    state = "showing_fact"
+                                    fact_display_time = pygame.time.get_ticks()
+                                    if not sound_played:
+                                        play_miss_sound()  # Play miss sound for already analyzed pithole
+                                        sound_played = True 
                     else:
                         current_fact = "Keep exploring for more beneficial results!"
                         state = "analyzing"

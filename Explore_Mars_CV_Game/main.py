@@ -393,6 +393,24 @@ def mark_region_as_analyzed(region_coords, region_type):
     elif region_type == "pithole":
         analyzed_pitholes.add(region_coords)
 
+# Function to draw zones with color based on their analysis state
+def draw_zones():
+    # Draw the stone zones
+    for stone in stone_coords:
+        x1, y1, x2, y2 = stone
+        width = x2 - x1  # Calculate the width
+        height = y2 - y1  # Calculate the height
+        color = (0, 255, 0) if has_analyzed_region(stone, "stone") else (255, 0, 0)  # Green for analyzed, Red for unvisited
+        pygame.draw.rect(screen, color, pygame.Rect(x1, y1, width, height), 2)  # Draw rectangle with 2px outline
+
+    # Draw the pithole zones
+    for pithole in pithole_coords:
+        x1, y1, x2, y2 = pithole
+        width = x2 - x1  # Calculate the width
+        height = y2 - y1  # Calculate the height
+        color = (0, 255, 0) if has_analyzed_region(pithole, "pithole") else (255, 0, 0)  # Green for analyzed, Red for unvisited
+        pygame.draw.rect(screen, color, pygame.Rect(x1, y1, width, height), 2)  # Draw rectangle with 2px outline
+
 # Game loop
 def main_game():
     running = True
@@ -434,6 +452,9 @@ def main_game():
 
         # Draw the audio control icon
         display_audio_control_icon(screen, 20, screen_height - 70, muted)
+
+        # Draw the zones with visual color indications
+        draw_zones()
 
         # Get mouse position and click state
         mouse_pos = pygame.mouse.get_pos()
@@ -477,7 +498,6 @@ def main_game():
         # Display the analyzed zones progress (e.g., "Analyzed: 0/7 zones")
         progress_text = f"Analyzed: {analyzed_zones}/{total_zones} zones"
         progress_surface = font_sub.render(progress_text, True, WHITE)
-        progress_width, progress_height = progress_surface.get_size()
         progress_x = 20
         progress_y = 180  # Place it near the top
         screen.blit(progress_surface, (progress_x, progress_y))
@@ -504,7 +524,10 @@ def main_game():
                     collision_type = check_for_collision(rover_rect, stone_coords, pithole_coords)
                     if collision_type == "stone":
                         for stone in stone_coords:
-                            if rover_rect.colliderect(pygame.Rect(stone)):
+                            x1, y1, x2, y2 = stone
+                            width = x2 - x1  # Calculate the width
+                            height = y2 - y1  # Calculate the height
+                            if rover_rect.colliderect(pygame.Rect(x1, y1, width, height)):
                                 # If stone has not been analyzed yet
                                 if not has_analyzed_region(stone, "stone"):
                                     current_fact = random.choice(stone_facts)
@@ -512,18 +535,13 @@ def main_game():
                                     analyzing_start_time = pygame.time.get_ticks()
                                     mark_region_as_analyzed(stone, "stone")  # Mark as analyzed
                                     sound_played = False  # Reset flag to play success sound
-                                else:
-                                    # Already analyzed, no further analysis
-                                    current_fact = "You've already analyzed this stone!"
-                                    state = "showing_fact"
-                                    fact_display_time = pygame.time.get_ticks()
-                                    if not sound_played:
-                                        play_miss_sound()  # Play miss sound for already analyzed stone
-                                        sound_played = True
                     
                     elif collision_type == "pithole":
                         for pithole in pithole_coords:
-                            if rover_rect.colliderect(pygame.Rect(pithole)):
+                            x1, y1, x2, y2 = pithole
+                            width = x2 - x1  # Calculate the width
+                            height = y2 - y1  # Calculate the height
+                            if rover_rect.colliderect(pygame.Rect(x1, y1, width, height)):
                                 # If pithole has not been analyzed yet
                                 if not has_analyzed_region(pithole, "pithole"):
                                     current_fact = random.choice(pithole_facts)
@@ -531,20 +549,14 @@ def main_game():
                                     analyzing_start_time = pygame.time.get_ticks()
                                     mark_region_as_analyzed(pithole, "pithole")  # Mark as analyzed
                                     sound_played = False  # Reset flag to play success sound
-                                else:
-                                    # Already analyzed, no further analysis
-                                    current_fact = "You've already analyzed this pithole!"
-                                    state = "showing_fact"
-                                    fact_display_time = pygame.time.get_ticks()
-                                    if not sound_played:
-                                        play_miss_sound()  # Play miss sound for already analyzed pithole
-                                        sound_played = True 
+
                     else:
                         current_fact = "Keep exploring for more beneficial results!"
                         state = "analyzing"
                         analyzing_start_time = pygame.time.get_ticks()
                         sound_played = False  # Reset the flag to play sound after analysis
-                
+               
+
                 if gesture in ["left", "right", "up", "down"]:
                     now = time.time()
                     is_moving = True
@@ -573,18 +585,6 @@ def main_game():
                     if p.life <= 0:
                         particles.remove(p)
 
-        # If webcam is enabled, display the webcam feed
-        if webcam_enabled:
-            ret, frame = cap.read()
-            if ret:
-                frame = cv2.flip(frame, 1)  # Flip horizontally for mirroring
-                frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame_surface = pygame.surfarray.make_surface(frame_rgb)
-                frame_surface = pygame.transform.scale(frame_surface, (200, 150))
-                screen.blit(frame_surface, (0, 0))  # Display the webcam feed
-
-
         # Handle text display logic (analyzing, showing_fact)
         if state == "analyzing":
             elapsed_time = pygame.time.get_ticks() - analyzing_start_time
@@ -601,11 +601,25 @@ def main_game():
                     if not sound_played:
                         play_miss_sound()  # Play miss sound after analyzing
                         sound_played = True  # Ensure it's only played once
+
         elif state == "showing_fact":
             if pygame.time.get_ticks() - fact_display_time <= fact_display_duration:
                 display_text_with_background(screen, current_fact, 40)
             else:
                 state = "idle"
+
+        # If webcam is enabled, display the webcam feed
+        if webcam_enabled:
+            ret, frame = cap.read()
+            if ret:
+                frame = cv2.flip(frame, 1)  # Flip horizontally for mirroring
+                frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame_surface = pygame.surfarray.make_surface(frame_rgb)
+                frame_surface = pygame.transform.scale(frame_surface, (200, 150))
+                screen.blit(frame_surface, (0, 0))  # Display the webcam feed
+
+
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_ESCAPE] or keys[pygame.K_q]:

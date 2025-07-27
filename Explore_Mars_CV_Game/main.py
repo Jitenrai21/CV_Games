@@ -453,10 +453,43 @@ def draw_zones():
         pygame.draw.rect(screen, color, pygame.Rect(x1, y1, width, height), 2)  # Draw rectangle with 2px outline
 
 def show_game_complete_screen():
-    screen.fill((0, 0, 0))
-    display_text_with_background(screen, "Mission Complete!", 60)
-    pygame.display.flip()
-    pygame.time.wait(5000)
+    # Set up fonts and assets
+    font = pygame.font.SysFont("Impact", 60)
+    sub_font = pygame.font.SysFont("Impact", 30)
+    title_text = font.render("Mission Complete!", True, (255, 215, 0))  # Gold
+    sub_text = sub_font.render("Great job, explorer! Get ready for your next journey...", True, (200, 200, 200))
+
+    # Center positions
+    title_rect = title_text.get_rect(center=(screen_width // 2, screen_height // 2 - 50))
+    sub_rect = sub_text.get_rect(center=(screen_width // 2, screen_height // 2 + 30))
+
+    # Load or simulate celebratory background (optional)
+    stars = [
+        (random.randint(0, screen_width), random.randint(0, screen_height), random.randint(1, 3))
+        for _ in range(150)
+    ]
+
+    # Play celebration sound once
+    # play_success_sound()
+    
+    # Animation timer
+    start_time = pygame.time.get_ticks()
+    while pygame.time.get_ticks() - start_time < 4000:  # Display for 4 seconds
+        screen.fill((0, 0, 20))  # Dark night-sky background
+
+        # Draw the logo
+        draw_logo(screen, logo_img)
+
+        # Draw stars
+        for x, y, size in stars:
+            pygame.draw.circle(screen, (255, 255, 255), (x, y), size)
+
+        # Draw text
+        screen.blit(title_text, title_rect)
+        screen.blit(sub_text, sub_rect)
+
+        pygame.display.flip()
+        pygame.time.delay(30)
 
 # Game loop
 def main_game():

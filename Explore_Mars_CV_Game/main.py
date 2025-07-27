@@ -9,12 +9,52 @@ from modules.rover_movement_animation import Particle
 from modules.button import Button
 from modules.collision_check import check_for_collision
 from modules.text_configs import *
+from levels.level_data import level_configs
 
 # Initialize pygame
 pygame.init()
 
 # Initialize the Pygame mixer for sound
 pygame.mixer.init()
+
+current_level_index = 0  # Track current level
+
+def load_level(current_level_index):
+    global background_image, rover_image, logo_img
+    global stone_coords, pithole_coords, stone_facts, pithole_facts
+    global total_zones, analyzed_stones, analyzed_pitholes
+    global success_sound, miss_sound
+    global bgm_path
+
+    level = level_configs[index]
+
+    background_image = pygame.image.load(level["background"]).convert()
+    background_image = pygame.transform.smoothscale(background_image, (screen_width, screen_height))
+
+    rover_image = pygame.image.load(level["rover"]).convert_alpha()
+    rover_image = pygame.transform.smoothscale(rover_image, (120, 120))
+
+    logo_img = pygame.image.load(level["logo"]).convert_alpha()
+    logo_img = pygame.transform.smoothscale(logo_img, (120, 120))
+
+    stone_coords = level["stone_coords"]
+    pithole_coords = level["pithole_coords"]
+    stone_facts = level["stone_facts"]
+    pithole_facts = level["pithole_facts"]
+    analyzed_stones = set()
+    analyzed_pitholes = set()
+    total_zones = len(stone_coords) + len(pithole_coords)
+
+    # Load sounds
+    pygame.mixer.music.load(level["sounds"]["bgm"])
+    pygame.mixer.music.set_volume(1.0)
+    pygame.mixer.music.play(-1)
+
+    success_sound = pygame.mixer.Sound(level["sounds"]["success"])
+    success_sound.set_volume(1.0)
+
+    miss_sound = pygame.mixer.Sound(level["sounds"]["miss"])
+    miss_sound.set_volume(1.0)
 
 # Get the base directory of the project
 base_dir = os.path.dirname(os.path.abspath(__file__))  # Get current script directory
@@ -245,6 +285,7 @@ tutorial_text = [
     ("Press Space or Enter to start the game.", COLOR_EMOJI, font_sub)
 ]
 
+
 def start_screen():
     running = True
     while running:
@@ -430,6 +471,11 @@ def main_game():
     rover_x, rover_y = screen_width // 2, screen_height // 2
     rover_speed = 5
 
+    last_collided_zone = None
+    collision_type = None
+
+    current_level_index = 0
+
     is_moving = False
     while running:
         # Handle events
@@ -518,7 +564,7 @@ def main_game():
             for landmarks in results.multi_hand_landmarks:
                 mp_draw.draw_landmarks(frame_rgb, landmarks, mp_hands.HAND_CONNECTIONS)
                 gesture = detect_hand_gesture(landmarks, prev_gestures, mirror_x=True, mirror_y=True)
-                
+
                 if gesture == "fist":
                     rover_rect = pygame.Rect(rover_x, rover_y, rover_image.get_width(), rover_image.get_height())
                     collision_type = check_for_collision(rover_rect, stone_coords, pithole_coords)
@@ -533,9 +579,13 @@ def main_game():
                                     current_fact = random.choice(stone_facts)
                                     state = "analyzing"
                                     analyzing_start_time = pygame.time.get_ticks()
-                                    mark_region_as_analyzed(stone, "stone")  # Mark as analyzed
+                                    last_collided_zone = stone  # Mark as analyzed
                                     sound_played = False  # Reset flag to play success sound
-                    
+                                else:
+                                    current_fact = "Already analyzed zone!"
+                                    state = "already_analyzed"
+                                    fact_display_time = pygame.time.get_ticks()
+                                    sound_played = False
                     elif collision_type == "pithole":
                         for pithole in pithole_coords:
                             x1, y1, x2, y2 = pithole
@@ -547,8 +597,13 @@ def main_game():
                                     current_fact = random.choice(pithole_facts)
                                     state = "analyzing"
                                     analyzing_start_time = pygame.time.get_ticks()
-                                    mark_region_as_analyzed(pithole, "pithole")  # Mark as analyzed
+                                    last_collided_zone = pithole
                                     sound_played = False  # Reset flag to play success sound
+                                else:
+                                    current_fact = "Already analyzed zone!"
+                                    state = "already_analyzed"
+                                    fact_display_time = pygame.time.get_ticks()
+                                    sound_played = False
 
                     else:
                         current_fact = "Keep exploring for more beneficial results!"
@@ -593,7 +648,13 @@ def main_game():
             else:
                 state = "showing_fact"
                 fact_display_time = pygame.time.get_ticks()
-                if collision_type == "stone" or collision_type == "pithole":
+                if collision_type == "stone":
+                    mark_region_as_analyzed(last_collided_zone, "stone")
+                    if not sound_played:
+                        play_success_sound()  # Play success sound after analyzing
+                        sound_played = True  # Ensure it's only played once
+                elif collision_type == "pithole":
+                    mark_region_as_analyzed(last_collided_zone, "pithole")
                     if not sound_played:
                         play_success_sound()  # Play success sound after analyzing
                         sound_played = True  # Ensure it's only played once
@@ -607,7 +668,11 @@ def main_game():
                 display_text_with_background(screen, current_fact, 40)
             else:
                 state = "idle"
-
+        elif state == "already_analyzed":
+            if pygame.time.get_ticks() - fact_display_time <= fact_display_duration:
+                display_text_with_background(screen, current_fact, 40)
+            else:
+                state = "idle"
         # If webcam is enabled, display the webcam feed
         if webcam_enabled:
             ret, frame = cap.read()
@@ -619,7 +684,15 @@ def main_game():
                 frame_surface = pygame.transform.scale(frame_surface, (200, 150))
                 screen.blit(frame_surface, (0, 0))  # Display the webcam feed
 
-
+        if analyzed_zones == total_zones:
+            if current_level_index + 1 < len(level_configs):
+                current_level_index += 1
+                load_level(current_level_index)
+                start_screen()
+                # Reset local rover_x, rover_y if needed
+            else:
+                # show_game_complete_screen()
+                running = False
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_ESCAPE] or keys[pygame.K_q]:
@@ -629,6 +702,8 @@ def main_game():
         # Update display
         pygame.display.flip()
         clock.tick(60)
+
+load_level(current_level_index)
 
 start_screen()
 

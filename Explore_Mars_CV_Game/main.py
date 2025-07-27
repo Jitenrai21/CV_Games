@@ -26,7 +26,7 @@ def load_level(current_level_index):
     global success_sound, miss_sound
     global bgm_path
 
-    level = level_configs[index]
+    level = level_configs[current_level_index]
 
     background_image = pygame.image.load(level["background"]).convert()
     background_image = pygame.transform.smoothscale(background_image, (screen_width, screen_height))
@@ -452,6 +452,12 @@ def draw_zones():
         color = (0, 255, 0) if has_analyzed_region(pithole, "pithole") else (255, 0, 0)  # Green for analyzed, Red for unvisited
         pygame.draw.rect(screen, color, pygame.Rect(x1, y1, width, height), 2)  # Draw rectangle with 2px outline
 
+def show_game_complete_screen():
+    screen.fill((0, 0, 0))
+    display_text_with_background(screen, "Mission Complete!", 60)
+    pygame.display.flip()
+    pygame.time.wait(5000)
+
 # Game loop
 def main_game():
     running = True
@@ -685,14 +691,23 @@ def main_game():
                 screen.blit(frame_surface, (0, 0))  # Display the webcam feed
 
         if analyzed_zones == total_zones:
-            if current_level_index + 1 < len(level_configs):
-                current_level_index += 1
+            # Play level complete sound if you want (optional)
+            pygame.time.delay(1500)  # Small delay before switching
+
+            # Advance to next level
+            current_level_index += 1
+
+            if current_level_index < len(level_configs):
                 load_level(current_level_index)
-                start_screen()
-                # Reset local rover_x, rover_y if needed
+                # Reset rover or any local gameplay variables here
+                rover_x, rover_y = 200, 200  # example reset
+                state = "idle"
+                continue  # Restart loop for next level
             else:
-                # show_game_complete_screen()
+                # Show mission complete screen and exit
+                show_game_complete_screen()
                 running = False
+                break
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_ESCAPE] or keys[pygame.K_q]:

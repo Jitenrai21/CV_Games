@@ -62,4 +62,54 @@ level_configs = [
             "miss": os.path.join(assets_dir, "miss.mp3")
         }
     },
+    {   
+        # level 2 setup
+        "background": os.path.join(assets_dir, "background2.png"),
+        "rover": os.path.join(assets_dir, "rover2.png"),
+        "logo": os.path.join(assets_dir, "Logo.png"),
+
+        "stone_coords": [
+            # (int(319 * screen_width / 800), int(404 * screen_height / 600), int(341 * screen_width / 800), int(418 * screen_height / 600)),
+            # (int(182 * screen_width / 800), int(348 * screen_height / 600), int(199 * screen_width / 800), int(362 * screen_height / 600)),
+            # (int(729 * screen_width / 800), int(363 * screen_height / 600), int(748 * screen_width / 800), int(377 * screen_height / 600))
+        ],
+
+        "pithole_coords": [
+            (int(137 * screen_width / 800), int(410 * screen_height / 600), int(236 * screen_width / 800), int(441 * screen_height / 600)),
+            # (int(318 * screen_width / 800), int(458 * screen_height / 600), int(376 * screen_width / 800), int(485 * screen_height / 600)),
+            # (int(500 * screen_width / 800), int(321 * screen_height / 600), int(618 * screen_width / 800), int(361 * screen_height / 600))
+        ],
+
+        "stone_facts": [
+            "Mars rocks are rich in iron, giving the planet its red color.",
+            "Some rocks on Mars were formed billions of years ago.",
+            "Mars may have had water long ago, according to some rocks.",
+            "Mars' volcanoes are giant, like Olympus Mons, the biggest volcano in the solar system.",
+            "Curiosity rover found signs of life in some Martian rocks.",
+            "Mars has rocks that look like Earth’s, formed by wind and water.",
+            "Mars has huge dust storms that can cover the entire planet.",
+            "Some rocks on Mars show signs of past underground water.",
+            "NASA’s Perseverance rover is collecting Martian rock samples.",
+            "Valles Marineris, a giant canyon on Mars, is the largest in the solar system."
+        ],
+
+        "pithole_facts": [
+            "Pitholes are holes in Mars' surface, made by old volcanic activity.",
+            "Some pitholes formed from gas bubbles deep underground.",
+            "Pitholes on Mars might have come from collapsing lava tubes.",
+            "Martian pitholes show where the planet's volcanoes once erupted.",
+            "Gas release from Mars' surface could have caused pitholes.",
+            "Pitholes are formed by the low gravity and no atmosphere on Mars.",
+            "Some pitholes on Mars may have been caused by meteorite impacts.",
+            "Pitholes give scientists clues about Mars’ past weather and atmosphere.",
+            "Many pitholes are near old volcanoes, showing Mars’ volcanic history.",
+            "Pitholes may help us understand how Mars changed over time."
+        ],
+
+        "sounds": {
+            "bgm": os.path.join(assets_dir, "bgm.mp3"),
+            "success": os.path.join(assets_dir, "success.mp3"),
+            "miss": os.path.join(assets_dir, "miss.mp3")
+        }
+    }
 ]

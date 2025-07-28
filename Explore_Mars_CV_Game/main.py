@@ -491,6 +491,74 @@ def show_game_complete_screen():
         pygame.display.flip()
         pygame.time.delay(30)
 
+def show_game_end_screen():
+    """Displays the final game end screen when there are no more levels."""
+    # Set up fonts and assets
+    font = pygame.font.SysFont("Impact", 60)
+    sub_font = pygame.font.SysFont("Impact", 30)
+    title_text = font.render("Game Over!", True, (255, 215, 0))  # Gold for the main title
+    sub_text = sub_font.render("Thank you for playing!", True, (200, 200, 200))  # Gray for subtext
+
+    # Center positions
+    title_rect = title_text.get_rect(center=(screen_width // 2, screen_height // 2 - 50))
+    sub_rect = sub_text.get_rect(center=(screen_width // 2, screen_height // 2 + 30))
+
+    # Load or simulate celebratory background (optional)
+    stars = [
+        (random.randint(0, screen_width), random.randint(0, screen_height), random.randint(1, 3))
+        for _ in range(150)
+    ]
+
+    # Play celebration sound once (optional)
+    # play_success_sound()
+
+    # Animation timer
+    start_time = pygame.time.get_ticks()
+    while pygame.time.get_ticks() - start_time < 4000:  # Display for 4 seconds
+        screen.fill((0, 0, 20))  # Dark night-sky background for the final screen
+
+        # Draw the logo (optional)
+        draw_logo(screen, logo_img)
+
+        # Draw stars to create a celebratory atmosphere
+        for x, y, size in stars:
+            pygame.draw.circle(screen, (255, 255, 255), (x, y), size)
+
+        # Draw the title and subtext on the screen
+        screen.blit(title_text, title_rect)
+        screen.blit(sub_text, sub_rect)
+
+        pygame.display.flip()
+        pygame.time.delay(30)
+
+    # Optionally, you can add a small delay before closing the game or showing a menu
+    pygame.time.wait(1000)  # Wait for an additional second if you need before closing or transitioning
+
+def handle_level_complete():
+    global current_level_index, running, state, rover_x, rover_y, rover_speed
+
+    # Once player has interacted, move to the next level
+    current_level_index += 1
+
+    if current_level_index < len(level_configs):
+        # Show Mission Complete screen
+        show_game_complete_screen()
+
+        pygame.time.delay(3000)  # Small delay before transitioning to the next level
+
+        # Load the next level
+        load_level(current_level_index)
+        # Reset rover or any local gameplay variables here
+        rover_x, rover_y = screen_width // 2, screen_height // 2  # example reset
+        rover_speed = 7
+        state = "idle"  # Reset game state
+        return 'next_level' 
+    else:
+        # Show final mission complete screen and exit
+        show_game_end_screen()  # This is for the final game end screen
+        running = False
+        return "end_game"  # Indicate that the game has ended
+
 # Game loop
 def main_game():
     running = True
@@ -723,25 +791,19 @@ def main_game():
                 frame_surface = pygame.transform.scale(frame_surface, (200, 150))
                 screen.blit(frame_surface, (0, 0))  # Display the webcam feed
 
-        if analyzed_zones == total_zones:
-            # Play level complete sound if you want (optional)
-            pygame.time.delay(1500)  # Small delay before switching
+        if analyzed_zones == total_zones and state != 'analyzing' and state != 'showing_fact':
+            # Call handle_level_complete to process the level complete state
+            result = handle_level_complete()
 
-            # Advance to next level
-            current_level_index += 1
-
-            if current_level_index < len(level_configs):
-                load_level(current_level_index)
-                # Reset rover or any local gameplay variables here
-                rover_x, rover_y = 200, 200  # example reset
-                state = "idle"
-                continue  # Restart loop for next level
-            else:
-                # Show mission complete screen and exit
-                show_game_complete_screen()
+            if result == "next_level":
+                # Proceed to the next level
+                state = "idle"  # Reset game state
+                continue  # Proceed with the next iteration (next level)
+            elif result == "end_game":
+                # End the game after completing all levels
                 running = False
-                break
-
+                break  # Exit the game loop
+            
         keys = pygame.key.get_pressed()
         if keys[pygame.K_ESCAPE] or keys[pygame.K_q]:
             pygame.quit()  # Exit the game if ESC or Q is pressed

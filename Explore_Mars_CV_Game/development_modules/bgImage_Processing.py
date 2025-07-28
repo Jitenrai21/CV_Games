@@ -35,8 +35,8 @@ def draw_bounding_boxes_and_save(image, stone_coords, pithole_coords, output_pat
 #     (468, 279, 717, 333),  # Pithole 1: top-left (500, 550), bottom-right (600, 650)
 #     (437, 398, 720, 463)
 # ]
-stone_coords = [(397, 377, 417, 391), (773, 338, 790, 352), (736, 547, 757, 563), (44, 337, 63, 352)]
-pithole_coords = [(478, 412, 678, 472), (269, 339, 316, 360), (137, 409, 238, 444)]
+stone_coords = [(319, 404, 341, 418), (182, 348, 199, 362), (729, 363, 748, 377)]
+pithole_coords = [(137, 410, 236, 441), (318, 458, 376, 485), (500, 321, 618, 361)]
 # Load the image
 image = cv2.imread('background2.png')
 image = cv2.resize(image, (800, 600))

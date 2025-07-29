@@ -40,7 +40,7 @@ def draw_rectangle(event, x, y, flags, param):
             pithole_count += 1  # Increment pithole count
 
 # Load the image (replace 'mars_background.jpg' with your image path)
-image = cv2.imread('background2.png')
+image = cv2.imread('background3.png')
 image = cv2.resize(image, (800, 600))
 image_copy = image.copy()
 

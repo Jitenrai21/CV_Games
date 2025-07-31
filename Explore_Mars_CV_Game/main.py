@@ -548,9 +548,6 @@ def handle_level_complete():
 
         # Load the next level
         load_level(current_level_index)
-        # Reset rover or any local gameplay variables here
-        rover_x, rover_y = screen_width // 2, screen_height // 2  # example reset
-        rover_speed = 7
         state = "idle"  # Reset game state
         return 'next_level' 
     else:
@@ -607,7 +604,7 @@ def main_game():
         display_audio_control_icon(screen, 20, screen_height - 70, muted)
 
         # Draw the zones with visual color indications
-        draw_zones()
+        # draw_zones()
 
         # Get mouse position and click state
         mouse_pos = pygame.mouse.get_pos()
@@ -798,6 +795,9 @@ def main_game():
             if result == "next_level":
                 # Proceed to the next level
                 state = "idle"  # Reset game state
+                # Reset rover or any local gameplay variables here
+                rover_x, rover_y = screen_width // 2, screen_height // 2  # example reset
+                rover_speed = 7
                 continue  # Proceed with the next iteration (next level)
             elif result == "end_game":
                 # End the game after completing all levels
